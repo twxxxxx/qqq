@@ -26,6 +26,8 @@ typedef enum {
     // File management
     ProtoPirateCustomEventReceiverInfoSave,
     ProtoPirateCustomEventReceiverInfoEmulate,
+    ProtoPirateCustomEventReceiverInfoBruteforceStart,
+    ProtoPirateCustomEventReceiverInfoBruteforceCancel,
     ProtoPirateCustomEventSavedInfoDelete,
     // Emulator
     ProtoPirateCustomEventSavedInfoEmulate,
