@@ -19,19 +19,10 @@ static void protopirate_scene_saved_info_widget_callback(
                 app->view_dispatcher, ProtoPirateCustomEventSavedInfoEmulate);
         }
 #endif
-    } else if(result == GuiButtonTypeRight) {
-        switch(type) {
-        case InputTypeShort:
-            notification_message(app->notifications, &sequence_error);
-            break;
-        case InputTypeLong:
-            notification_message(app->notifications, &sequence_semi_success);
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, ProtoPirateCustomEventSavedInfoDelete);
-            break;
-        default:
-            break;
-        }
+    } else if(result == GuiButtonTypeRight && (type == InputTypeShort)) {
+        //Send delete event and get user confirmation to delete.
+        view_dispatcher_send_custom_event(
+            app->view_dispatcher, ProtoPirateCustomEventSavedInfoDelete);
     }
 }
 
@@ -258,9 +249,32 @@ bool protopirate_scene_saved_info_on_event(void* context, SceneManagerEvent even
         if(event.event == ProtoPirateCustomEventSavedInfoDelete) {
             FURI_LOG_I(TAG, "Delete requested");
             if(app->loaded_file_path && !furi_string_empty(app->loaded_file_path)) {
-                protopirate_storage_delete_file(furi_string_get_cstr(app->loaded_file_path));
+                //Show the "Are you Sure" dialog.
+                app->dialogs = furi_record_open(RECORD_DIALOGS);
+                DialogMessage* message = dialog_message_alloc();
+                dialog_message_set_buttons(message, "DElete", NULL, "Keep");
+                dialog_message_set_icon(message, &I_WarningDolphin_45x42, 0, 12);
+                dialog_message_set_header(
+                    message, "Confirm Delete Action", 64, 0, AlignCenter, AlignTop);
+                dialog_message_set_text(
+                    message,
+                    "Are you sure you\nwant to delete\nthis file?",
+                    50,
+                    14,
+                    AlignLeft,
+                    AlignTop);
+                DialogMessageButton dialog_result = dialog_message_show(app->dialogs, message);
+                dialog_message_free(message);
+                furi_record_close(RECORD_DIALOGS);
+                app->dialogs = NULL;
+
+                //Delete if the user said yes.
+                if(dialog_result == DialogMessageButtonLeft) {
+                    notification_message(app->notifications, &sequence_semi_success);
+                    protopirate_storage_delete_file(furi_string_get_cstr(app->loaded_file_path));
+                    scene_manager_previous_scene(app->scene_manager);
+                }
             }
-            scene_manager_previous_scene(app->scene_manager);
             consumed = true;
         }
 #ifdef ENABLE_EMULATE_FEATURE
